@@ -1,19 +1,16 @@
 const express = require('express');
-const { getDb } = require('../db/database');
+const { connectDB } = require('../db/database');
+const Note = require('../models/Note');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
-
 router.use(authenticate);
 
 router.get('/', async (req, res) => {
   try {
-    const pool = await getDb();
-    const { rows } = await pool.query(
-      'SELECT * FROM notes WHERE user_id = $1 ORDER BY updated_at DESC',
-      [req.user.id]
-    );
-    res.json(rows);
+    await connectDB();
+    const notes = await Note.find({ userId: req.user.id }).sort({ updatedAt: -1 });
+    res.json(notes);
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -21,13 +18,10 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const pool = await getDb();
-    const { rows } = await pool.query(
-      'SELECT * FROM notes WHERE id = $1 AND user_id = $2',
-      [req.params.id, req.user.id]
-    );
-    if (!rows[0]) return res.status(404).json({ error: 'Note not found' });
-    res.json(rows[0]);
+    await connectDB();
+    const note = await Note.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+    res.json(note);
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -38,12 +32,9 @@ router.post('/', async (req, res) => {
   if (!title) return res.status(400).json({ error: 'title is required' });
 
   try {
-    const pool = await getDb();
-    const { rows } = await pool.query(
-      'INSERT INTO notes (user_id, title, content) VALUES ($1, $2, $3) RETURNING *',
-      [req.user.id, title, content || '']
-    );
-    res.status(201).json(rows[0]);
+    await connectDB();
+    const note = await Note.create({ userId: req.user.id, title, content: content || '' });
+    res.status(201).json(note);
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -54,13 +45,14 @@ router.put('/:id', async (req, res) => {
   if (!title) return res.status(400).json({ error: 'title is required' });
 
   try {
-    const pool = await getDb();
-    const { rows } = await pool.query(
-      'UPDATE notes SET title = $1, content = $2, updated_at = NOW() WHERE id = $3 AND user_id = $4 RETURNING *',
-      [title, content || '', req.params.id, req.user.id]
+    await connectDB();
+    const note = await Note.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id },
+      { title, content: content || '' },
+      { new: true }
     );
-    if (!rows[0]) return res.status(404).json({ error: 'Note not found' });
-    res.json(rows[0]);
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+    res.json(note);
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -68,12 +60,9 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const pool = await getDb();
-    const { rows } = await pool.query(
-      'DELETE FROM notes WHERE id = $1 AND user_id = $2 RETURNING id',
-      [req.params.id, req.user.id]
-    );
-    if (!rows[0]) return res.status(404).json({ error: 'Note not found' });
+    await connectDB();
+    const note = await Note.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+    if (!note) return res.status(404).json({ error: 'Note not found' });
     res.status(204).send();
   } catch {
     res.status(500).json({ error: 'Internal server error' });
