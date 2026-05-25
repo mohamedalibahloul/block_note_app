@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start:backend": "node --experimental-sqlite backend/src/app.js",
-    "dev:backend": "nodemon --exec \"node --experimental-sqlite\" backend/src/app.js",
-    "dev:frontend": "cd frontend && npm run dev",
-    "test:api": "cross-env NODE_OPTIONS=--experimental-sqlite npx jest --runInBand --forceExit --testPathPattern=\"tests/api\"",
+    "start:backend": "node backend/src/app.js",
+    "dev:backend": "node backend/src/app.js",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build:all": "npm install --prefix frontend && npm run build --prefix frontend",
+    "test:api": "npx jest --runInBand --forceExit --testPathPattern=\"tests/api\"",
     "test:e2e": "npx playwright test",
     "test": "npm run test:api"
   },

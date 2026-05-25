@@ -7,10 +7,25 @@ on:
     branches: [main]
 
 jobs:
-  # ─── Job 1: API Tests (Supertest) ─────────────────────────────────────────
+  # ─── Job 1: API Tests (Supertest + PostgreSQL) ────────────────────────────
   api-tests:
     name: API Tests (Supertest)
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: blocknote_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -29,21 +44,30 @@ jobs:
         run: npm ci --prefix backend
 
       - name: Run API tests
-        run: NODE_OPTIONS=--experimental-sqlite npx jest --runInBand --forceExit --testPathPattern="tests/api"
-
-      - name: Upload API test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-test-results
-          path: reports/api/
-          if-no-files-found: ignore
+        run: npx jest --runInBand --forceExit --testPathPattern="tests/api"
+        env:
+          POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/blocknote_test
 
   # ─── Job 2: E2E Tests (Playwright) ────────────────────────────────────────
   e2e-tests:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
     needs: api-tests
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: blocknote_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -68,10 +92,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        # continue even if some tests fail so the report is always uploaded
-        run: NODE_OPTIONS=--experimental-sqlite npx playwright test || true
+        run: npx playwright test || true
         env:
           CI: true
+          POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/blocknote_e2e
 
       - name: Upload Playwright HTML report
         if: always()
@@ -101,7 +125,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: playwright-json-results
-        # If e2e job failed before generating the file this step may fail — continue anyway
         continue-on-error: true
 
       - name: Send Playwright results to n8n
@@ -116,12 +139,7 @@ jobs:
             curl -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
               -H "Content-Type: application/json" \
               -d '{
-                "stats": {
-                  "expected": 0,
-                  "unexpected": 0,
-                  "skipped": 0,
-                  "flaky": 0
-                },
+                "stats": { "expected": 0, "unexpected": 0, "skipped": 0, "flaky": 0 },
                 "suites": [],
                 "errors": ["E2E results file not generated"],
                 "meta": {

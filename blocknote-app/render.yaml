@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: blocknote-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node --experimental-sqlite src/app.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_PATH
+        value: /opt/render/project/data/blocknote.db
+      - key: PORT
+        value: 3001

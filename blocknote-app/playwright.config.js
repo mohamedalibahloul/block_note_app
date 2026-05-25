@@ -23,12 +23,12 @@ module.exports = defineConfig({
   ],
   webServer: [
     {
-      command: 'cross-env NODE_OPTIONS=--experimental-sqlite node backend/src/app.js',
+      command: 'node backend/src/app.js',
       port: 3001,
       reuseExistingServer: !process.env.CI,
       env: {
         PORT: '3001',
-        DB_PATH: './data/e2e_test.db',
+        POSTGRES_URL: process.env.POSTGRES_URL || 'postgresql://postgres:postgres@localhost:5432/blocknote_e2e',
       },
     },
     {

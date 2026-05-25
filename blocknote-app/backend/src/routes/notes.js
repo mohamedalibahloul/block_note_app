@@ -6,52 +6,78 @@ const router = express.Router();
 
 router.use(authenticate);
 
-router.get('/', (req, res) => {
-  const db = getDb();
-  const notes = db.prepare('SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC').all(req.user.id);
-  res.json(notes);
+router.get('/', async (req, res) => {
+  try {
+    const pool = await getDb();
+    const { rows } = await pool.query(
+      'SELECT * FROM notes WHERE user_id = $1 ORDER BY updated_at DESC',
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-router.get('/:id', (req, res) => {
-  const db = getDb();
-  const note = db.prepare('SELECT * FROM notes WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
-  if (!note) return res.status(404).json({ error: 'Note not found' });
-  res.json(note);
+router.get('/:id', async (req, res) => {
+  try {
+    const pool = await getDb();
+    const { rows } = await pool.query(
+      'SELECT * FROM notes WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Note not found' });
+    res.json(rows[0]);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { title, content } = req.body;
   if (!title) return res.status(400).json({ error: 'title is required' });
 
-  const db = getDb();
-  const stmt = db.prepare('INSERT INTO notes (user_id, title, content) VALUES (?, ?, ?)');
-  const result = stmt.run(req.user.id, title, content || '');
-  const note = db.prepare('SELECT * FROM notes WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(note);
+  try {
+    const pool = await getDb();
+    const { rows } = await pool.query(
+      'INSERT INTO notes (user_id, title, content) VALUES ($1, $2, $3) RETURNING *',
+      [req.user.id, title, content || '']
+    );
+    res.status(201).json(rows[0]);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { title, content } = req.body;
   if (!title) return res.status(400).json({ error: 'title is required' });
 
-  const db = getDb();
-  const existing = db.prepare('SELECT * FROM notes WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
-  if (!existing) return res.status(404).json({ error: 'Note not found' });
-
-  db.prepare('UPDATE notes SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .run(title, content || '', req.params.id);
-
-  const updated = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
-  res.json(updated);
+  try {
+    const pool = await getDb();
+    const { rows } = await pool.query(
+      'UPDATE notes SET title = $1, content = $2, updated_at = NOW() WHERE id = $3 AND user_id = $4 RETURNING *',
+      [title, content || '', req.params.id, req.user.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Note not found' });
+    res.json(rows[0]);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-router.delete('/:id', (req, res) => {
-  const db = getDb();
-  const existing = db.prepare('SELECT * FROM notes WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
-  if (!existing) return res.status(404).json({ error: 'Note not found' });
-
-  db.prepare('DELETE FROM notes WHERE id = ?').run(req.params.id);
-  res.status(204).send();
+router.delete('/:id', async (req, res) => {
+  try {
+    const pool = await getDb();
+    const { rows } = await pool.query(
+      'DELETE FROM notes WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Note not found' });
+    res.status(204).send();
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 module.exports = router;

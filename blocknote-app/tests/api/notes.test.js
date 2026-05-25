@@ -1,11 +1,6 @@
 const request = require('supertest');
-const path = require('path');
-const fs = require('fs');
-
-process.env.DB_PATH = path.join(__dirname, '../../data/test_notes.db');
-
 const app = require('../../backend/src/app');
-const { closeDb } = require('../../backend/src/db/database');
+const { getDb, closeDb } = require('../../backend/src/db/database');
 
 let token;
 let noteId;
@@ -19,9 +14,10 @@ beforeAll(async () => {
   token = res.body.token;
 });
 
-afterAll(() => {
-  closeDb();
-  if (fs.existsSync(process.env.DB_PATH)) fs.unlinkSync(process.env.DB_PATH);
+afterAll(async () => {
+  const pool = await getDb();
+  await pool.query('TRUNCATE users CASCADE');
+  await closeDb();
 });
 
 describe('GET /api/notes', () => {
