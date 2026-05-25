@@ -1,0 +1,59 @@
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const { getDb } = require('../db/database');
+const { signToken } = require('../middleware/auth');
+
+const router = express.Router();
+
+router.post('/register', async (req, res) => {
+  const { username, email, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'username, email and password are required' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  try {
+    const db = getDb();
+    const hashed = await bcrypt.hash(password, 10);
+    const stmt = db.prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)');
+    const result = stmt.run(username, email, hashed);
+    const token = signToken({ id: result.lastInsertRowid, username, email });
+    res.status(201).json({ token, user: { id: result.lastInsertRowid, username, email } });
+  } catch (err) {
+    if (err.message.includes('UNIQUE')) {
+      return res.status(409).json({ error: 'Username or email already exists' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'email and password are required' });
+  }
+
+  try {
+    const db = getDb();
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = signToken({ id: user.id, username: user.username, email: user.email });
+    res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+module.exports = router;

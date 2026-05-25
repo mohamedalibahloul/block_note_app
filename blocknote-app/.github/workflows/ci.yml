@@ -1,0 +1,103 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─── Job 1: API Tests (Supertest) ─────────────────────────────────────────
+  api-tests:
+    name: API Tests (Supertest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+
+      - name: Run API tests
+        run: NODE_OPTIONS=--experimental-sqlite npx jest --runInBand --forceExit --testPathPattern="tests/api"
+
+      - name: Upload API test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: reports/api/
+          if-no-files-found: ignore
+
+  # ─── Job 2: E2E Tests (Playwright) ────────────────────────────────────────
+  e2e-tests:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: api-tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: NODE_OPTIONS=--experimental-sqlite npx playwright test
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: reports/playwright/
+          retention-days: 30
+
+  # ─── Job 3: Trigger n8n Reporting Workflow ────────────────────────────────
+  notify-n8n:
+    name: Trigger n8n Report
+    runs-on: ubuntu-latest
+    needs: [api-tests, e2e-tests]
+    if: always()
+
+    steps:
+      - name: Send test results to n8n
+        run: |
+          curl -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "repository": "${{ github.repository }}",
+              "branch": "${{ github.ref_name }}",
+              "commit": "${{ github.sha }}",
+              "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "api_tests_status": "${{ needs.api-tests.result }}",
+              "e2e_tests_status": "${{ needs.e2e-tests.result }}",
+              "triggered_by": "${{ github.actor }}"
+            }'
