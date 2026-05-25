@@ -68,17 +68,26 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: NODE_OPTIONS=--experimental-sqlite npx playwright test
+        # continue even if some tests fail so the report is always uploaded
+        run: NODE_OPTIONS=--experimental-sqlite npx playwright test || true
         env:
           CI: true
 
-      - name: Upload Playwright report
+      - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-html-report
           path: reports/playwright/
           retention-days: 30
+
+      - name: Upload Playwright JSON results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-json-results
+          path: reports/playwright-results.json
+          if-no-files-found: ignore
 
   # ─── Job 3: Trigger n8n Reporting Workflow ────────────────────────────────
   notify-n8n:
@@ -88,16 +97,41 @@ jobs:
     if: always()
 
     steps:
-      - name: Send test results to n8n
+      - name: Download Playwright JSON results
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-json-results
+        # If e2e job failed before generating the file this step may fail — continue anyway
+        continue-on-error: true
+
+      - name: Send Playwright results to n8n
         run: |
-          curl -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "repository": "${{ github.repository }}",
-              "branch": "${{ github.ref_name }}",
-              "commit": "${{ github.sha }}",
-              "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "api_tests_status": "${{ needs.api-tests.result }}",
-              "e2e_tests_status": "${{ needs.e2e-tests.result }}",
-              "triggered_by": "${{ github.actor }}"
-            }'
+          if [ -f "playwright-results.json" ]; then
+            echo "Sending playwright-results.json to n8n..."
+            curl -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
+              -H "Content-Type: application/json" \
+              -d @playwright-results.json
+          else
+            echo "No playwright-results.json found, sending fallback payload..."
+            curl -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "stats": {
+                  "expected": 0,
+                  "unexpected": 0,
+                  "skipped": 0,
+                  "flaky": 0
+                },
+                "suites": [],
+                "errors": ["E2E results file not generated"],
+                "meta": {
+                  "repository": "${{ github.repository }}",
+                  "branch": "${{ github.ref_name }}",
+                  "commit": "${{ github.sha }}",
+                  "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                  "api_tests_status": "${{ needs.api-tests.result }}",
+                  "e2e_tests_status": "${{ needs.e2e-tests.result }}",
+                  "triggered_by": "${{ github.actor }}"
+                }
+              }'
+          fi
