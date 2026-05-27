@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { api } from '../api';
+import { useState } from "react";
+import { api } from "../api";
 
 export default function Login({ onSuccess, onSwitch }) {
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const data = await api.login(form);
@@ -21,8 +21,16 @@ export default function Login({ onSuccess, onSwitch }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="auth-form" data-testid="login-form">
-      {error && <p className="form-error" data-testid="login-error">{error}</p>}
+    <form
+      onSubmit={handleSubmit}
+      className="auth-form"
+      data-testid="login-form"
+    >
+      {error && (
+        <p className="form-error" data-testid="login-error">
+          {error}
+        </p>
+      )}
 
       <div className="form-group">
         <label htmlFor="login-email">Email</label>
@@ -32,7 +40,7 @@ export default function Login({ onSuccess, onSwitch }) {
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          placeholder="you@example.com"
+          placeholder="youu@example.com"
           required
         />
       </div>
@@ -50,13 +58,23 @@ export default function Login({ onSuccess, onSwitch }) {
         />
       </div>
 
-      <button type="submit" className="btn-primary" disabled={loading} data-testid="login-submit">
-        {loading ? 'Logging in…' : 'Login'}
+      <button
+        type="submit"
+        className="btn-primary"
+        disabled={loading}
+        data-testid="login-submit"
+      >
+        {loading ? "Logging in…" : "Login"}
       </button>
 
       <p className="switch-link">
-        No account?{' '}
-        <button type="button" className="link-btn" onClick={onSwitch} data-testid="go-register">
+        No account?{" "}
+        <button
+          type="button"
+          className="link-btn"
+          onClick={onSwitch}
+          data-testid="go-register"
+        >
           Register
         </button>
       </p>

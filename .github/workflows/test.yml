@@ -1,4 +1,4 @@
-name: Test Runner
+name: QA Automation Pipeline
 
 on:
   push:
@@ -8,5 +8,59 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Test
-        run: echo "Runner is working  !"
+      # Clone main repository
+      - name: Checkout App Repository
+        uses: actions/checkout@v4
+
+      # Clone testing repository
+      - name: Clone Testing Repository
+        run: |
+          git clone https://github.com/mohamedalibahloul/BlockNote_Testing.git
+
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Install dependencies
+      - name: Install Testing Dependencies
+        run: |
+          cd BlockNote_Testing
+          npm install
+
+      # Install Playwright browsers
+      - name: Install Playwright Browsers
+        run: |
+          cd BlockNote_Testing
+          npx playwright install
+
+      # Run Playwright tests
+      - name: Run Playwright Tests
+        run: |
+          cd BlockNote_Testing
+          npx playwright test
+
+      # Verify report exists
+      - name: Verify JSON Report
+        run: |
+          dir BlockNote_Testing\reports
+
+      # Print JSON report (debug)
+      - name: Print JSON Report
+        run: |
+          type BlockNote_Testing\reports\playwright-results.json
+
+      # Send JSON to n8n webhook
+      - name: Send JSON To n8n
+        shell: powershell
+        run: |
+          Invoke-RestMethod `
+            -Uri "http://localhost:5678/webhook/qa-report-upload" `
+            -Method POST `
+            -ContentType "application/json" `
+            -InFile "BlockNote_Testing/reports/playwright-results.json"
+
+      # Finish
+      - name: Pipeline Finished
+        run: echo "QA Pipeline completed successfully!"
