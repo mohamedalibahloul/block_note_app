@@ -9,4 +9,4 @@ jobs:
 
     steps:
       - name: Test
-        run: echo "Runner works!"
+        run: echo "Runner is working!"
