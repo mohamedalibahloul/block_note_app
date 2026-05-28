@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { api } from '../api';
+import { useState } from "react";
+import { api } from "../api";
 
 export default function Register({ onSuccess, onSwitch }) {
-  const [form, setForm] = useState({ username: '', email: '', password: '' });
-  const [error, setError] = useState('');
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const data = await api.register(form);
@@ -21,8 +21,16 @@ export default function Register({ onSuccess, onSwitch }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="auth-form" data-testid="register-form">
-      {error && <p className="form-error" data-testid="register-error">{error}</p>}
+    <form
+      onSubmit={handleSubmit}
+      className="auth-form"
+      data-testid="register-form"
+    >
+      {error && (
+        <p className="form-error" data-testid="register-error">
+          {error}
+        </p>
+      )}
 
       <div className="form-group">
         <label htmlFor="reg-username">Username</label>
@@ -64,13 +72,23 @@ export default function Register({ onSuccess, onSwitch }) {
         />
       </div>
 
-      <button type="submit" className="btn-primary" disabled={loading} data-testid="register-submit">
-        {loading ? 'Creating account…' : 'Create account'}
+      <button
+        type="submit"
+        className="btn-primary"
+        disabled={loading}
+        data-testid="register-submit"
+      >
+        {loading ? "Creating account…" : "create account"}
       </button>
 
       <p className="switch-link">
-        Already have an account?{' '}
-        <button type="button" className="link-btn" onClick={onSwitch} data-testid="go-login">
+        Already have an account?{" "}
+        <button
+          type="button"
+          className="link-btn"
+          onClick={onSwitch}
+          data-testid="go-login"
+        >
           Login
         </button>
       </p>

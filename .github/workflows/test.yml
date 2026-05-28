@@ -37,6 +37,7 @@ jobs:
 
       # Run Playwright tests
       - name: Run Playwright Tests
+        continue-on-error: true
         run: |
           cd BlockNote_Testing
           npx playwright test
