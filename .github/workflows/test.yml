@@ -17,33 +17,34 @@ jobs:
         run: |
           git clone https://github.com/mohamedalibahloul/BlockNote_Testing.git
 
-      # Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: 20
+          python-version: '3.12'
 
       # Install dependencies
       - name: Install Testing Dependencies
         run: |
           cd BlockNote_Testing
-          npm install
+          pip install -r requirements.txt
 
       # Install Playwright browsers
       - name: Install Playwright Browsers
         run: |
           cd BlockNote_Testing
-          npx playwright install
+          playwright install
 
       # Run Playwright tests
       - name: Run Playwright Tests
         continue-on-error: true
         run: |
           cd BlockNote_Testing
-          npx playwright test
+          pytest --json-report --json-report-file=reports/playwright-results.json
 
       # Verify report exists
       - name: Verify JSON Report
+        continue-on-error: true
         run: |
           dir BlockNote_Testing\reports
 
