@@ -10,17 +10,15 @@ export default function Notes({ user, onLogout }) {
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    loadNotes();
+    (async () => {
+      try {
+        const data = await api.getNotes();
+        setNotes(data);
+      } catch (err) {
+        setError(err.message);
+      }
+    })();
   }, []);
-
-  async function loadNotes() {
-    try {
-      const data = await api.getNotes();
-      setNotes(data);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
 
   function openNew() {
     setSelected(null);
