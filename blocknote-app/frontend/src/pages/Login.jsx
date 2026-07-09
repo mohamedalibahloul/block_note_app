@@ -40,7 +40,7 @@ export default function Login({ onSuccess, onSwitch }) {
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          placeholder="youur@example.com"
+          placeholder="youuemail@example.com"
           required
         />
       </div>

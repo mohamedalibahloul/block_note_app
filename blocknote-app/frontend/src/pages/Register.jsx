@@ -40,7 +40,7 @@ export default function Register({ onSuccess, onSwitch }) {
           type="text"
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
-          placeholder="johndoe"
+          placeholder="Dalii"
           required
         />
       </div>
