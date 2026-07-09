@@ -1,58 +1,47 @@
 name: QA Automation Pipeline
-
 on:
   push:
-
 jobs:
   test:
     runs-on: self-hosted
-
     steps:
       # Clone main repository
       - name: Checkout App Repository
         uses: actions/checkout@v4
-
       # Clone testing repository
       - name: Clone Testing Repository
         run: |
           git clone https://github.com/mohamedalibahloul/BlockNote_Testing.git
-
       # Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-
+          python-version: "3.12"
       # Install dependencies
       - name: Install Testing Dependencies
         run: |
           cd BlockNote_Testing
           pip install -r requirements.txt
-
       # Install Playwright browsers
       - name: Install Playwright Browsers
         run: |
           cd BlockNote_Testing
           playwright install
-
       # Run Playwright tests
       - name: Run Playwright Tests
         continue-on-error: true
         run: |
           cd BlockNote_Testing
           pytest --json-report --json-report-file=reports/playwright-results.json
-
       # Verify report exists
       - name: Verify JSON Report
         continue-on-error: true
         run: |
           dir BlockNote_Testing\reports
-
       # Print JSON report (debug)
       - name: Print JSON Report
         run: |
           type BlockNote_Testing\reports\playwright-results.json
-
       # Send JSON to n8n webhook
       - name: Send JSON To n8n
         shell: powershell
@@ -62,7 +51,6 @@ jobs:
             -Method POST `
             -ContentType "application/json" `
             -InFile "BlockNote_Testing/reports/playwright-results.json"
-
       # Finish
       - name: Pipeline Finished
         run: echo "QA Pipeline completed successfully!"
