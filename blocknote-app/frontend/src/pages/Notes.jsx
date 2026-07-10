@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { api } from '../api';
+import { useState, useEffect } from "react";
+import { api } from "../api";
 
 export default function Notes({ user, onLogout }) {
   const [notes, setNotes] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ title: '', content: '' });
-  const [error, setError] = useState('');
+  const [form, setForm] = useState({ title: "", content: "" });
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -22,21 +22,21 @@ export default function Notes({ user, onLogout }) {
 
   function openNew() {
     setSelected(null);
-    setForm({ title: '', content: '' });
+    setForm({ title: "", content: "" });
     setShowForm(true);
-    setError('');
+    setError("");
   }
 
   function openEdit(note) {
     setSelected(note);
     setForm({ title: note.title, content: note.content });
     setShowForm(true);
-    setError('');
+    setError("");
   }
 
   async function handleSave(e) {
     e.preventDefault();
-    setError('');
+    setError("");
     setSaving(true);
     try {
       if (selected) {
@@ -73,10 +73,16 @@ export default function Notes({ user, onLogout }) {
       <aside className="sidebar">
         <div className="sidebar-header">
           <h2>BlockNote</h2>
-          <span className="username" data-testid="username-display">{user?.username}</span>
+          <span className="username" data-testid="username-display">
+            {user?.username}
+          </span>
         </div>
 
-        <button className="btn-primary new-note-btn" onClick={openNew} data-testid="new-note-btn">
+        <button
+          className="btn-primary new-note-btn"
+          onClick={openNew}
+          data-testid="new-note-btn"
+        >
           + New Note
         </button>
 
@@ -87,7 +93,7 @@ export default function Notes({ user, onLogout }) {
           {notes.map((note) => (
             <li
               key={note.id}
-              className={`note-item ${selected?.id === note.id ? 'active' : ''}`}
+              className={`note-item ${selected?.id === note.id ? "active" : ""}`}
               data-testid="note-item"
             >
               <button className="note-title-btn" onClick={() => openEdit(note)}>
@@ -105,7 +111,11 @@ export default function Notes({ user, onLogout }) {
           ))}
         </ul>
 
-        <button className="logout-btn" onClick={onLogout} data-testid="logout-btn">
+        <button
+          className="logout-btn"
+          onClick={onLogout}
+          data-testid="logout-btn"
+        >
           Logout
         </button>
       </aside>
@@ -124,8 +134,13 @@ export default function Notes({ user, onLogout }) {
                 required
               />
               <div className="editor-actions">
-                <button type="submit" className="btn-primary" disabled={saving} data-testid="save-note-btn">
-                  {saving ? 'Saving…' : 'Save'}
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={saving}
+                  data-testid="save-note-btn"
+                >
+                  {saving ? "Saving…" : "Save"}
                 </button>
                 <button
                   type="button"
@@ -137,11 +152,15 @@ export default function Notes({ user, onLogout }) {
                 </button>
               </div>
             </div>
-            {error && <p className="form-error" data-testid="note-error">{error}</p>}
+            {error && (
+              <p className="form-error" data-testid="note-error">
+                {error}
+              </p>
+            )}
             <textarea
               className="note-content"
               data-testid="note-content"
-              placeholder="Write your note here…"
+              placeholder="Write your note "
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
             />
