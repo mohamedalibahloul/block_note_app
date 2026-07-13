@@ -53,7 +53,7 @@ export default function Register({ onSuccess, onSwitch }) {
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          placeholder="you@example.com"
+          placeholder="ali@example.com"
           required
         />
       </div>
